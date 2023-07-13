@@ -10,26 +10,19 @@ import SwiftUI
 
 struct ReplyToCommentReply: ReplyTo {
     let commentReply: APICommentReplyView
-    let account: SavedAccount
     let appState: AppState
     
     func embeddedView() -> AnyView {
-        return AnyView(InboxReplyView(account: account,
-                                      reply: commentReply,
+        return AnyView(InboxReplyView(reply: commentReply,
                                       menuFunctions: [])
             .padding(.horizontal))
     }
     
     func sendReply(commentContents: String) async throws {
-        guard let account = appState.currentActiveAccount else {
-            print("Cannot Submit, No Active Account")
-            return
-        }
-        
         try await postCommentWithoutTracker(postId: commentReply.post.id,
                                             commentId: commentReply.comment.id,
                                             commentContents: commentContents,
-                                            account: account,
+                                            account: appState.currentActiveAccount,
                                             appState: appState)
     }
 }

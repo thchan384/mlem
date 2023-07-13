@@ -12,7 +12,9 @@ import SwiftUI
  APIPostView on demand for when we don't already have one
  */
 struct LazyLoadExpandedPost: View {
-    @State var account: SavedAccount
+    
+    @EnvironmentObject var appState: AppState
+    
     @State var post: APIPost
     
     @State private var loadedPostView: APIPostView?
@@ -22,7 +24,7 @@ struct LazyLoadExpandedPost: View {
     var body: some View {
         Group {
             if let loadedPost = loadedPostView {
-                ExpandedPost(account: account, post: loadedPost, feedType: .constant(.subscribed))
+                ExpandedPost(post: loadedPost)
                     .environmentObject(postTracker)
             } else {
                 progressView
@@ -35,7 +37,7 @@ struct LazyLoadExpandedPost: View {
             Text("Loading post details…")
         }
         .task(priority: .background) {
-            let request = GetPostRequest(account: account, id: post.id, commentId: nil)
+            let request = GetPostRequest(account: appState.currentActiveAccount, id: post.id, commentId: nil)
             do {
                 let response = try await APIClient().perform(request: request)
                 postTracker.add([response.postView])
@@ -43,6 +45,7 @@ struct LazyLoadExpandedPost: View {
             } catch {
                 print("Get post error: \(error)")
                 // TODO: Some sort of common alert banner?
+                appState.contextualError = .init(underlyingError: error)
             }
         }
     }

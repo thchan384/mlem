@@ -13,7 +13,6 @@ struct MessageComposerView: View {
     @EnvironmentObject var appState: AppState
     
     // MARK: Parameters
-    let account: SavedAccount
     let recipient: APIPerson
     
     // MARK: State and other
@@ -88,21 +87,21 @@ struct MessageComposerView: View {
     
     func sendMessage() async {
         do {
-            guard let account = appState.currentActiveAccount else {
-                print("Cannot Submit, No Active Account")
-                return
-            }
-            
             isSubmitting = true
             
-            try await sendPrivateMessage(content: messageBody, recipient: recipient, account: account, appState: appState)
+            try await sendPrivateMessage(
+                content: messageBody,
+                recipient: recipient,
+                account: appState.currentActiveAccount,
+                appState: appState
+            )
             
             print("Post Successful")
             
             dismiss()
             
         } catch {
-            print("Something went wrong)")
+            appState.contextualError = .init(underlyingError: error)
             isSubmitting = false
         }
     }

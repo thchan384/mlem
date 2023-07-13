@@ -30,11 +30,11 @@ struct FavoriteStarButtonStyle: ButtonStyle {
 }
 
 struct CommuntiyFeedRowView: View {
-    let account: SavedAccount
     let community: APICommunity
     let subscribed: Bool
     let communitySubscriptionChanged: (APICommunity, Bool) -> Void
 
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var favoritesTracker: FavoriteCommunitiesTracker
 
     var body: some View {
@@ -96,16 +96,19 @@ struct CommuntiyFeedRowView: View {
 
     private func toggleFavorite() {
         if isFavorited() {
-            unfavoriteCommunity(account: account, community: community, favoritedCommunitiesTracker: favoritesTracker)
+            unfavoriteCommunity(community: community, favoritedCommunitiesTracker: favoritesTracker)
             UIAccessibility.post(notification: .announcement, argument: "Un-favorited \(community.name)")
         } else {
-            favoriteCommunity(account: account, community: community, favoritedCommunitiesTracker: favoritesTracker)
+            favoriteCommunity(account: appState.currentActiveAccount, community: community, favoritedCommunitiesTracker: favoritesTracker)
             UIAccessibility.post(notification: .announcement, argument: "Favorited \(community.name)")
         }
     }
 
     internal func isFavorited() -> Bool {
-        return getFavoritedCommunities(account: account, favoritedCommunitiesTracker: favoritesTracker).contains(community)
+        return getFavoritedCommunities(
+            account: appState.currentActiveAccount,
+            favoritedCommunitiesTracker: favoritesTracker
+        ).contains(community)
     }
 
     private func subscribe(communityId: Int, shouldSubscribe: Bool) async {
@@ -114,22 +117,22 @@ struct CommuntiyFeedRowView: View {
 
         do {
             let request = FollowCommunityRequest(
-                account: account,
+                account: appState.currentActiveAccount,
                 communityId: communityId,
                 follow: shouldSubscribe
             )
 
             _ = try await APIClient().perform(request: request)
         } catch {
-            // TODO: If we fail here and want to notify the user we'd ideally
-            print(error)
+            // TODO: If we fail here and want to notify the user we should pass a message
+            // into the contextual error below
+            appState.contextualError = .init(underlyingError: error)
             communitySubscriptionChanged(community, !shouldSubscribe)
         }
     }
 }
 
 struct HomepageFeedRowView: View {
-    let account: SavedAccount
     let feedType: FeedType
     let iconName: String
     let iconColor: Color

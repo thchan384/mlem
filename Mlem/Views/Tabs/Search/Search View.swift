@@ -9,10 +9,9 @@ import Foundation
 import SwiftUI
 
 struct SearchView: View {
-    // paremters
-    let account: SavedAccount
     
     // environment
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var communitySearchResultsTracker: CommunitySearchResultsTracker
     @EnvironmentObject var recentSearchesTracker: RecentSearchesTracker
 
@@ -158,7 +157,7 @@ struct SearchView: View {
                 print("Searching for '\(searchText)' on page \(searchPage)")
                 
                 let request = SearchRequest(
-                    account: account,
+                    account: appState.currentActiveAccount,
                     query: searchText,
                     searchType: .communities,
                     sortOption: .topAll,
@@ -178,7 +177,7 @@ struct SearchView: View {
             } catch is CancellationError {
                 print("Search cancelled")
             } catch {
-                print("Unknown error: \(error)")
+                appState.contextualError = .init(underlyingError: error)
             }
         }
     }

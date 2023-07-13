@@ -9,9 +9,13 @@
 // Since padding varies depending on compact/large view, it is handled *entirely* in those components. No padding should
 // appear anywhere in this file.
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+
 import CachedAsyncImage
 import QuickLook
 import SwiftUI
+import AlertToast
 
 /**
  Displays a single post in the feed
@@ -31,7 +35,6 @@ struct FeedPost: View {
     // MARK: Parameters
     
     init(postView: APIPostView,
-         account: SavedAccount,
          showPostCreator: Bool = true,
          showCommunity: Bool = true,
          showInteractionBar: Bool = true,
@@ -39,7 +42,6 @@ struct FeedPost: View {
          isDragging: Binding<Bool>,
          replyToPost: ((APIPostView) -> Void)?) {
         self.postView = postView
-        self.account = account
         self.showPostCreator = showPostCreator
         self.showCommunity = showCommunity
         self.showInteractionBar = showInteractionBar
@@ -49,7 +51,6 @@ struct FeedPost: View {
     }
     
     let postView: APIPostView
-    let account: SavedAccount
     let showPostCreator: Bool
     let showCommunity: Bool
     let showInteractionBar: Bool
@@ -69,8 +70,6 @@ struct FeedPost: View {
         VStack(spacing: 0) {
             postItem
                 .background(Color.systemBackground)
-                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 16 : 0))
-                .padding(.all, horizontalSizeClass == .regular ? nil : 0)
                 .contextMenu {
                     ForEach(genMenuFunctions()) { item in
                         Button {
@@ -87,13 +86,9 @@ struct FeedPost: View {
                     primaryTrailingAction: enableSwipeActions ? saveSwipeAction : nil,
                     secondaryTrailingAction: enableSwipeActions ? replySwipeAction : nil
                 )
-
-            if horizontalSizeClass == .compact {
-                Divider()
-            }
         }
         .sheet(isPresented: $isComposingReport) {
-            ReportComposerView(account: account, reportedPost: postView)
+            ReportComposerView(reportedPost: postView)
         }
     }
     
@@ -114,45 +109,44 @@ struct FeedPost: View {
         if postSize == .compact {
             UltraCompactPost(
                 postView: postView,
-                account: account,
                 showCommunity: showCommunity,
                 menuFunctions: genMenuFunctions()
             )
         } else {
-            VStack(alignment: .leading, spacing: AppConstants.postAndCommentSpacing) {
-                // community name
-                // TEMPORARILY DISABLED: conditionally showing based on community
-                // if showCommunity {
-                //    CommunityLinkView(community: postView.community)
-                // }
-                HStack {
-                    CommunityLinkView(community: postView.community)
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: AppConstants.postAndCommentSpacing) {
+                    // community name
+                    // TEMPORARILY DISABLED: conditionally showing based on community
+                    // if showCommunity {
+                    //    CommunityLinkView(community: postView.community)
+                    // }
+                    HStack {
+                        CommunityLinkView(community: postView.community)
+                        
+                        Spacer()
+                        
+                        EllipsisMenu(size: 24, menuFunctions: genMenuFunctions())
+                    }
                     
-                    Spacer()
+                    if postSize == .headline {
+                        HeadlinePost(postView: postView)
+                    } else {
+                        LargePost(
+                            postView: postView,
+                            isExpanded: false
+                        )
+                    }
                     
-                    EllipsisMenu(size: 24, menuFunctions: genMenuFunctions())
+                    // posting user
+                    if showPostCreator {
+                        UserProfileLink(user: postView.creator, serverInstanceLocation: .bottom)
+                    }
                 }
-                
-                if postSize == .headline {
-                    CompactPost(
-                        postView: postView,
-                        account: account
-                    )
-                } else {
-                    LargePost(
-                        postView: postView,
-                        isExpanded: false
-                    )
-                }
-                
-                // posting user
-                if showPostCreator {
-                    UserProfileLink(user: postView.creator, serverInstanceLocation: .bottom)
-                }
+                .padding(.top, AppConstants.postAndCommentSpacing)
+                .padding(.horizontal, AppConstants.postAndCommentSpacing)
                 
                 if showInteractionBar {
                     PostInteractionBar(postView: postView,
-                                       account: account,
                                        menuFunctions: genMenuFunctions(),
                                        voteOnPost: voteOnPost,
                                        updatedSavePost: { _ in await savePost() },
@@ -161,7 +155,6 @@ struct FeedPost: View {
                 }
             }
             .background(Color.systemBackground)
-            .padding(AppConstants.postAndCommentSpacing)
         }
     }
 
@@ -177,9 +170,43 @@ struct FeedPost: View {
     
     func deletePost() async {
         do {
-            _ = try await Mlem.deletePost(postId: postView.post.id, account: account, postTracker: postTracker, appState: appState)
+            _ = try await Mlem.deletePost(
+                postId: postView.post.id,
+                account: appState.currentActiveAccount,
+                postTracker: postTracker,
+                appState: appState
+            )
         } catch {
-            print("failed to delete post: \(error)")
+            appState.contextualError = .init(underlyingError: error)
+        }
+    }
+    
+    func blockUser() async {
+        do {
+            let blocked = try await blockPerson(
+                account: appState.currentActiveAccount,
+                person: postView.creator,
+                blocked: true
+            )
+            if blocked {
+                postTracker.removePosts(from: postView.creator.id)
+                
+                let toast = AlertToast(
+                    displayMode: .alert,
+                    type: .complete(.blue),
+                    title: "Blocked \(postView.creator.name)"
+                )
+                appState.toast = toast
+                appState.isShowingToast = true
+            } // Show Toast
+        } catch {
+            let toast = AlertToast(
+                displayMode: .alert,
+                type: .error(.red),
+                title: "Unable to block \(postView.creator.name)"
+            )
+            appState.toast = toast
+            appState.isShowingToast = true
         }
     }
     
@@ -197,20 +224,25 @@ struct FeedPost: View {
             _ = try await ratePost(
                 postId: postView.post.id,
                 operation: operation,
-                account: account,
+                account: appState.currentActiveAccount,
                 postTracker: postTracker,
                 appState: appState
             )
         } catch {
-            print("failed to vote!")
+            appState.contextualError = .init(underlyingError: error)
         }
     }
 
     func savePost() async {
         do {
-            _ = try await sendSavePostRequest(account: account, postId: postView.post.id, save: !postView.saved, postTracker: postTracker)
+            _ = try await sendSavePostRequest(
+                account: appState.currentActiveAccount,
+                postId: postView.post.id,
+                save: !postView.saved,
+                postTracker: postTracker
+            )
         } catch {
-            print("failed to save!")
+            appState.contextualError = .init(underlyingError: error)
         }
     }
     
@@ -276,7 +308,7 @@ struct FeedPost: View {
         }
         
         // delete
-        if postView.creator.id == account.id {
+        if postView.creator.id == appState.currentActiveAccount.id {
             ret.append(MenuFunction(
                 text: "Delete",
                 imageName: "trash",
@@ -306,6 +338,17 @@ struct FeedPost: View {
             destructiveActionPrompt: nil,
             enabled: true) {
                 isComposingReport = true
+            })
+        
+        // block user
+        ret.append(MenuFunction(
+            text: "Block User",
+            imageName: "person.fill.xmark",
+            destructiveActionPrompt: nil,
+            enabled: true) {
+                Task(priority: .userInitiated) {
+                    await blockUser()
+                }
             })
         
         return ret
@@ -371,3 +414,5 @@ extension FeedPost {
         }
     }
 }
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length

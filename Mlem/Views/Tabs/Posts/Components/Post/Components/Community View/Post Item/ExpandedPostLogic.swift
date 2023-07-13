@@ -19,12 +19,12 @@ extension ExpandedPost {
             self.post = try await ratePost(
                 postId: post.post.id,
                 operation: operation,
-                account: account,
+                account: appState.currentActiveAccount,
                 postTracker: postTracker,
                 appState: appState
             )
         } catch {
-            print("failed to vote!")
+            appState.contextualError = .init(underlyingError: error)
         }
     }
     
@@ -32,16 +32,26 @@ extension ExpandedPost {
      Sends a save request for the current post
      */
     func savePost(_ save: Bool) async throws {
-        self.post = try await sendSavePostRequest(account: account, postId: post.post.id, save: save, postTracker: postTracker)
+        self.post = try await sendSavePostRequest(
+            account: appState.currentActiveAccount,
+            postId: post.post.id,
+            save: save,
+            postTracker: postTracker
+        )
     }
     
     func deletePost() async {
         do {
             // TODO: renamed this function and/or move `deleteComment` out of the global scope to avoid
             // having to refer to our own module
-            _ = try await Mlem.deletePost(postId: post.post.id, account: account, postTracker: postTracker, appState: appState)
+            _ = try await Mlem.deletePost(
+                postId: post.post.id,
+                account: appState.currentActiveAccount,
+                postTracker: postTracker,
+                appState: appState
+            )
         } catch {
-            print("failed to delete post: \(error)")
+            appState.contextualError = .init(underlyingError: error)
         }
     }
     
@@ -110,7 +120,7 @@ extension ExpandedPost {
             })
         
         // delete
-        if post.creator.id == account.id {
+        if post.creator.id == appState.currentActiveAccount.id {
             ret.append(MenuFunction(
                 text: "Delete",
                 imageName: "trash",
@@ -142,13 +152,15 @@ extension ExpandedPost {
 
         commentTracker.isLoading = true
         do {
-            let request = GetCommentsRequest(account: account, postId: post.post.id)
+            let request = GetCommentsRequest(account: appState.currentActiveAccount, postId: post.post.id)
             let response = try await APIClient().perform(request: request)
             commentTracker.comments = sortComments(response.comments.hierarchicalRepresentation, by: defaultCommentSorting)
-        } catch APIClientError.response(let message, _) {
-            errorAlert = .init(title: "API error", message: message.error)
         } catch {
-            errorAlert = .init(title: "Failed to load comments", message: "Please refresh to try again")
+            appState.contextualError = .init(
+                title: "Failed to load comments",
+                message: "Please refresh to try again",
+                underlyingError: error
+            )
         }
     }
 

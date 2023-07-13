@@ -12,7 +12,6 @@ struct BlockCommunityButton: View {
     @EnvironmentObject var appState: AppState
 
     // parameters
-    @State var account: SavedAccount
     @Binding var communityDetails: APICommunityView?
 
     var body: some View {
@@ -44,7 +43,7 @@ struct BlockCommunityButton: View {
     private func block(communityId: Int, shouldBlock: Bool) async {
         do {
             let request = BlockCommunityRequest(
-                account: account,
+                account: appState.currentActiveAccount,
                 communityId: communityId,
                 block: shouldBlock
             )
@@ -52,8 +51,9 @@ struct BlockCommunityButton: View {
             let response = try await APIClient().perform(request: request)
             self.communityDetails = response.communityView
         } catch {
-            // TODO: If we fail here and want to notify the user we'd ideally
-            print(error)
+            // TODO: If we fail here and want to notify the user we should
+            // pass a message into the contextual error below
+            appState.contextualError = .init(underlyingError: error)
         }
     }
 }

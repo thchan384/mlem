@@ -9,9 +9,10 @@ import Foundation
 import SwiftUI
 
 struct ReplyToFeedPost: ReplyTo {
+    
+    @EnvironmentObject var appState: AppState
+    
     let post: APIPostView
-    let account: SavedAccount
-    let appState: AppState
     
     func embeddedView() -> AnyView {
         return AnyView(LargePost(postView: post, isExpanded: true)
@@ -19,16 +20,11 @@ struct ReplyToFeedPost: ReplyTo {
     }
     
     func sendReply(commentContents: String) async throws {
-        guard let account = appState.currentActiveAccount else {
-            print("Cannot Submit, No Active Account")
-            return
-        }
-        
         try await postCommentWithoutTracker(
             postId: post.post.id,
             commentId: nil,
             commentContents: commentContents,
-            account: account,
+            account: appState.currentActiveAccount,
             appState: appState)
     }
 }

@@ -22,8 +22,6 @@ struct ExpandedPost: View {
     @StateObject var commentTracker: CommentTracker = .init()
     @StateObject var commentReplyTracker: CommentReplyTracker = .init()
 
-    @State var account: SavedAccount
-
     @EnvironmentObject var postTracker: PostTracker
 
     @State var post: APIPostView
@@ -31,8 +29,6 @@ struct ExpandedPost: View {
     @State private var sortSelection = 0
 
     @State private var commentSortingType: CommentSortType = .top
-
-    @Binding var feedType: FeedType
 
     @State private var replyingToCommentID: Int?
 
@@ -43,9 +39,7 @@ struct ExpandedPost: View {
     @State internal var commentReplyingTo: APICommentView?
 
     @State private var viewID: UUID = UUID()
-
-    @State internal var errorAlert: ErrorAlert?
-
+    
     @State var isDragging: Bool = false
 
     var body: some View {
@@ -74,7 +68,7 @@ struct ExpandedPost: View {
         .sheet(isPresented: $isReplyingToComment) {
             if let comment = commentReplyingTo {
                 let replyTo: ReplyToComment = ReplyToComment(comment: comment,
-                                                             account: account,
+                                                             account: appState.currentActiveAccount,
                                                              appState: appState,
                                                              commentTracker: commentTracker)
                 GeneralCommentComposerView(replyTo: replyTo)
@@ -111,11 +105,8 @@ struct ExpandedPost: View {
                 commentTracker.comments = sortComments(commentTracker.comments, by: newSortingType)
             }
         }
-        .alert(using: $errorAlert) { content in
-            Alert(title: Text(content.title), message: Text(content.message))
-        }
         .sheet(isPresented: $isComposingReport) {
-            ReportComposerView(account: account, reportedPost: post)
+            ReportComposerView(reportedPost: post)
         }
     }
     // subviews
@@ -124,31 +115,33 @@ struct ExpandedPost: View {
      Displays the post itself, plus a little divider to keep it visually distinct from comments
      */
     private var postView: some View {
-        VStack(alignment: .leading, spacing: AppConstants.postAndCommentSpacing) {
-            HStack {
-                CommunityLinkView(community: post.community)
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: AppConstants.postAndCommentSpacing) {
+                HStack {
+                    CommunityLinkView(community: post.community)
+                    
+                    Spacer()
+                    
+                    EllipsisMenu(size: 24, menuFunctions: genMenuFunctions())
+                }
                 
-                Spacer()
+                LargePost(
+                    postView: post,
+                    isExpanded: true
+                )
                 
-                EllipsisMenu(size: 24, menuFunctions: genMenuFunctions())
+                UserProfileLink(user: post.creator, serverInstanceLocation: .bottom)
             }
-            
-            LargePost(
-                postView: post,
-                isExpanded: true
-            )
-            
-            UserProfileLink(user: post.creator, serverInstanceLocation: .bottom)
+            .padding(.top, AppConstants.postAndCommentSpacing)
+            .padding(.horizontal, AppConstants.postAndCommentSpacing)
             
             PostInteractionBar(postView: post,
-                               account: account,
                                menuFunctions: genMenuFunctions(),
                                voteOnPost: voteOnPost,
                                updatedSavePost: savePost,
                                deletePost: deletePost,
                                replyToPost: replyToPost)
         }
-        .padding(AppConstants.postAndCommentSpacing)
     }
 
     /**
@@ -192,7 +185,6 @@ struct ExpandedPost: View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(commentTracker.comments) { comment in
                 CommentItem(
-                    account: account,
                     hierarchicalComment: comment,
                     postContext: post,
                     depth: 0,

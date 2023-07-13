@@ -9,12 +9,12 @@ import Foundation
 import SwiftUI
 
 struct SymmetricVoteComplex: View {
+    @AppStorage("voteComplexOnRight") var shouldShowVoteComplexOnRight: Bool = false
     
     @EnvironmentObject var appState: AppState
     
     let vote: ScoringOperation
     let score: Int
-    let height: CGFloat
     let upvote: () async -> Void
     let downvote: () async -> Void
 
@@ -31,23 +31,37 @@ struct SymmetricVoteComplex: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            UpvoteButton(vote: vote, size: height)
-                .onTapGesture {
+            Button {
+                Task(priority: .userInitiated) {
+                    await upvote()
+                }
+            } label: {
+                UpvoteButtonLabel(vote: vote)
+            }
+            // squish it towards the score
+            .offset(x: AppConstants.postAndCommentSpacing)
+            
+            Text(String(score))
+                .foregroundColor(scoreColor)
+            
+            if appState.enableDownvote {
+                Button {
                     Task(priority: .userInitiated) {
                         await upvote()
                     }
-                }
-            Text(String(score))
-                .foregroundColor(scoreColor)
-            if appState.enableDownvote {
-                DownvoteButton(vote: vote, size: height)
-                    .onTapGesture {
-                        Task(priority: .userInitiated) {
-                            await downvote()
+                } label: {
+                    DownvoteButtonLabel(vote: vote)
+                        .onTapGesture {
+                            Task(priority: .userInitiated) {
+                                await downvote()
+                            }
                         }
-                    }
+                }
+                // squish it towards the score
+                .offset(x: -AppConstants.postAndCommentSpacing)
             }
         }
-        .frame(height: height)
+        // undo score squishing weirdness
+        .offset(x: (shouldShowVoteComplexOnRight ? 1 : -1) * (AppConstants.postAndCommentSpacing + 6))
     }
 }

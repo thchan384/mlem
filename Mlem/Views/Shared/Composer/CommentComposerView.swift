@@ -33,18 +33,13 @@ struct CommentComposerView: View {
 
     func submitPost() async {
         do {
-            guard let account = appState.currentActiveAccount else {
-                print("Cannot Submit, No Active Account")
-                return
-            }
-            
             isSubmitting = true
             
             try await postComment(
                 to: post,
                 commentContents: replybody,
                 commentTracker: commentTracker,
-                account: account,
+                account: appState.currentActiveAccount,
                 appState: appState)
                 
                 print("Reply Successful")
@@ -52,7 +47,7 @@ struct CommentComposerView: View {
             dismiss()
             
         } catch {
-            print("Something went wrong)")
+            appState.contextualError = .init(underlyingError: error)
             isSubmitting = false
         }
     }
@@ -75,18 +70,15 @@ struct CommentComposerView: View {
                         .padding()
                         
                         Spacer()
-
+                        
                         // Comment Context
-                        if let account = appState.currentActiveAccount {
-                            FeedPost(postView: post,
-                                     account: account,
-                                     showPostCreator: true,
-                                     showCommunity: true,
-                                     showInteractionBar: false,
-                                     enableSwipeActions: false,
-                                     isDragging: Binding.constant(false),
-                                     replyToPost: nil)
-                        }
+                        FeedPost(postView: post,
+                                 showPostCreator: true,
+                                 showCommunity: true,
+                                 showInteractionBar: false,
+                                 enableSwipeActions: false,
+                                 isDragging: Binding.constant(false),
+                                 replyToPost: nil)
                     }
                     
                     // Loading Indicator
@@ -102,7 +94,7 @@ struct CommentComposerView: View {
                     }
                 }
                 
-                .navigationTitle("New Post")
+                .navigationTitle("New Comment")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button("Cancel", role: .destructive) {

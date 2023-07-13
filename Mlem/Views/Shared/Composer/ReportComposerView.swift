@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct ReportComposerView: View {
-    // parameters
-    var account: SavedAccount
     
     var reportedPost: APIPostView?
     var reportedComment: APICommentView?
@@ -23,38 +21,38 @@ struct ReportComposerView: View {
     
     func submitPostReport(for post: APIPostView) async {
         do {
-            guard let account = appState.currentActiveAccount else {
-                print("Cannot Submit, No Active Account")
-                return
-            }
-            
             isSubmitting = true
             
-            _ = try await reportPost(postId: post.post.id, account: account, reason: reportReason, appState: appState)
+            _ = try await reportPost(
+                postId: post.post.id,
+                account: appState.currentActiveAccount,
+                reason: reportReason,
+                appState: appState
+            )
             
             dismiss()
             
         } catch {
-            print("Failed to submit post report: \(error)")
+            appState.contextualError = .init(underlyingError: error)
             isSubmitting = false
         }
     }
     
     func submitCommentReport(for comment: APICommentView) async {
         do {
-            guard let account = appState.currentActiveAccount else {
-                print("Cannot Submit, No Active Account")
-                return
-            }
-            
             isSubmitting = true
             
-            _ = try await reportComment(commentId: comment.comment.id, account: account, reason: reportReason, appState: appState)
+            _ = try await reportComment(
+                commentId: comment.comment.id,
+                account: appState.currentActiveAccount,
+                reason: reportReason,
+                appState: appState
+            )
             
             dismiss()
             
         } catch {
-            print("Failed to submit comment report: \(error)")
+            appState.contextualError = .init(underlyingError: error)
             isSubmitting = false
         }
     }
@@ -71,7 +69,6 @@ struct ReportComposerView: View {
                         if let post = reportedPost {
                             FeedPost(
                                 postView: post,
-                                account: account,
                                 showPostCreator: true,
                                 showCommunity: true,
                                 showInteractionBar: false,
@@ -81,7 +78,6 @@ struct ReportComposerView: View {
                             )
                         } else if let comment = reportedComment {
                             CommentItem(
-                                account: account,
                                 hierarchicalComment: HierarchicalComment(comment: comment, children: []),
                                 postContext: nil,
                                 depth: 0,

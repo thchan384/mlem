@@ -8,19 +8,18 @@
 import SwiftUI
 
 struct AppearanceSettingsView: View {
+
   // appearance
   @AppStorage("lightOrDarkMode") var lightOrDarkMode: UIUserInterfaceStyle = .unspecified
   @AppStorage("shouldBlurNsfw") var shouldBlurNsfw: Bool = true
   @AppStorage("showUsernameInNavigationBar") var showUsernameInNavigationBar: Bool = true
 
-  // website previews
-  @AppStorage("shouldShowWebsitePreviews") var shouldShowWebsitePreviews: Bool = true
-  @AppStorage("shouldShowWebsiteFaviconAtAll") var shouldShowWebsiteFaviconAtAll: Bool = true
-  @AppStorage("shouldShowWebsiteHost") var shouldShowWebsiteHost: Bool = true
-  @AppStorage("shouldShowWebsiteFavicons") var shouldShowWebsiteFavicons: Bool = true
+  // display sides
+  @AppStorage("voteComplexOnRight") var shouldShowVoteComplexOnRight: Bool = false
+  @AppStorage("thumbnailsOnRight") var shouldShowThumbnailsOnRight: Bool = false
 
   // posts
-  @AppStorage("postSize") var postSize: PostSize = .headline
+  @AppStorage("postSize") var postSize: PostSize = PostSize.headline
   @AppStorage("shouldShowPostThumbnails") var shouldShowPostThumbnails: Bool = false
   @AppStorage("shouldShowCommunityServerInPost") var shouldShowCommunityServerInPost: Bool = false
   @AppStorage("shouldShowUserServerInPost") var shouldShowUserServerInPost: Bool = false
@@ -36,197 +35,126 @@ struct AppearanceSettingsView: View {
   // icons
   @AppStorage("shouldShowUserAvatars") var shouldShowUserAvatars: Bool = true
   @AppStorage("shouldShowCommunityIcons") var shouldShowCommunityIcons: Bool = true
-
-  // other
-  @AppStorage("voteComplexStyle") var voteComplexStyle: VoteComplexStyle = .standard
-
   // navigation
   @AppStorage("hideTopBarAndNavBarWhenScrolling") var hideTopBarAndNavBarWhenScrolling: Bool = false
 
   var body: some View {
-    List {
-      Section("Theme") {
-        SelectableSettingsItem(
-          settingIconSystemName: "paintbrush",
-          settingName: "App theme",
-          currentValue: $lightOrDarkMode,
-          options: UIUserInterfaceStyle.allCases
-        )
-      }
-      Section("Website Previews") {
-        WebsiteIconComplex(
-          post:
-            APIPost(
-              id: 0,
-              name: "",
-              url: URL(string: "https://lemmy.ml/post/1011734")!,
-              body: "",
-              creatorId: 0,
-              communityId: 0,
-              deleted: false,
-              embedDescription: nil,
-              embedTitle: "I am an example of a website preview.\nCustomize me!",
-              embedVideoUrl: nil,
-              featuredCommunity: false,
-              featuredLocal: false,
-              languageId: 0,
-              apId: "https://lemmy.ml/post/1011068",
-              local: true,
-              locked: false,
-              nsfw: false,
-              published: .now,
-              removed: false,
-              thumbnailUrl: URL(
-                string: "https://lemmy.ml/pictrs/image/1b759945-6651-497c-bee0-9bdb68f4a829.png"),
-              updated: nil
-            )
-        )
-
-        .padding(.horizontal)
-
-        SwitchableSettingsItem(
-          settingPictureSystemName: "photo.circle.fill",
-          settingPictureColor: .pink,
-          settingName: "Show website image",
-          isTicked: $shouldShowWebsitePreviews
-        )
-        SwitchableSettingsItem(
-          settingPictureSystemName: "globe",
-          settingPictureColor: .pink,
-          settingName: "Show website icons",
-          isTicked: $shouldShowWebsiteFaviconAtAll
-        )
-        .onChange(of: shouldShowWebsiteFaviconAtAll) { _ in
-          if shouldShowWebsiteFaviconAtAll == false {
-            shouldShowWebsiteFavicons = false
-          } else {
-            shouldShowWebsiteFavicons = true
-          }
+    VStack {
+      List {
+        Section("Theme") {
+          SelectableSettingsItem(
+            settingIconSystemName: "paintbrush",
+            settingName: "App theme",
+            currentValue: $lightOrDarkMode,
+            options: UIUserInterfaceStyle.allCases
+          )
         }
-        SwitchableSettingsItem(
-          settingPictureSystemName: "network",
-          settingPictureColor: .pink,
-          settingName: "Show website address",
-          isTicked: $shouldShowWebsiteHost
-        )
-      }
-      Section("Posts") {
-        SwitchableSettingsItem(
-          settingPictureSystemName: "wifi.circle.fill",
-          settingPictureColor: .pink,
-          settingName: "Show dynamic website icons",
-          isTicked: $shouldShowWebsiteFavicons
-        )
-        .disabled(!shouldShowWebsiteFaviconAtAll)
 
-        SelectableSettingsItem(
-          settingIconSystemName: "rectangle.compress.vertical",
-          settingName: "Post size",
-          currentValue: $postSize,
-          options: PostSize.allCases
-        )
+        Section("Display Sides") {
+          SwitchableSettingsItem(
+            settingPictureSystemName: "arrow.up.arrow.down",
+            settingPictureColor: .pink,
+            settingName: "Show vote buttons on right",
+            isTicked: $shouldShowVoteComplexOnRight)
 
-        SwitchableSettingsItem(
-          settingPictureSystemName: "eye.trianglebadge.exclamationmark",
-          settingPictureColor: .pink,
-          settingName: "Blur NSFW",
-          isTicked: $shouldBlurNsfw)
+          SwitchableSettingsItem(
+            settingPictureSystemName: "photo",
+            settingPictureColor: .pink,
+            settingName: "Show thumbnails on right",
+            isTicked: $shouldShowThumbnailsOnRight)
+        }
 
-        SwitchableSettingsItem(
-          settingPictureSystemName: "server.rack",
-          settingPictureColor: .pink,
-          settingName: "Show user server instance",
-          isTicked: $shouldShowUserServerInPost)
-
-        SwitchableSettingsItem(
-          settingPictureSystemName: "server.rack",
-          settingPictureColor: .pink,
-          settingName: "Show community server instance",
-          isTicked: $shouldShowCommunityServerInPost)
-
-        SwitchableSettingsItem(
-          settingPictureSystemName: "signature",
-          settingPictureColor: .pink,
-          settingName: "Show post creator",
-          isTicked: $shouldShowPostCreator)
-
-        SwitchableSettingsItem(
-          settingPictureSystemName: "photo",
-          settingPictureColor: .pink,
-          settingName: "Show post thumbnails",
-          isTicked: $shouldShowPostThumbnails)
-      }
-
-      Section("Comments") {
-        SwitchableSettingsItem(
-          settingPictureSystemName: "server.rack",
-          settingPictureColor: .pink,
-          settingName: "Show user server instance",
-          isTicked: $shouldShowUserServerInComment)
-      }
-
-      Section("Communities") {
-        SwitchableSettingsItem(
-          settingPictureSystemName: "person.2.circle.fill",
-          settingPictureColor: .pink,
-          settingName: "Show community avatars",
-          isTicked: $shouldShowCommunityIcons
-        )
-
-        SwitchableSettingsItem(
-          settingPictureSystemName: "rectangle.grid.1x2",
-          settingPictureColor: .pink,
-          settingName: "Show community banners",
-          isTicked: $shouldShowCommunityHeaders
-        )
-      }
-
-      Section("Users") {
-        SwitchableSettingsItem(
-          settingPictureSystemName: "person.circle.fill",
-          settingPictureColor: .pink,
-          settingName: "Show user avatars",
-          isTicked: $shouldShowUserAvatars
-        )
-
-        SwitchableSettingsItem(
-          settingPictureSystemName: "rectangle.grid.1x2",
-          settingPictureColor: .pink,
-          settingName: "Show user banners",
-          isTicked: $shouldShowUserHeaders
-        )
-      }
-
-      Section("Further customization") {
-        SelectableSettingsItem(
-          settingIconSystemName: "arrow.up.arrow.down.square.fill",
-          settingName: "Vote complex style",
-          currentValue: $voteComplexStyle,
-          options: VoteComplexStyle.allCases
-        )
-      }
-
-      Section("Privacy") {
-        SwitchableSettingsItem(
-          settingPictureSystemName: "person.fill",
-          settingPictureColor: .pink,
-          settingName: "Show Username In Navigation Bar",
-          isTicked: $showUsernameInNavigationBar)
-      }
-
-      Section("Navigation") {
-        SwitchableSettingsItem(
-          settingPictureSystemName: "scroll.fill",
-          settingPictureColor: .pink,
-          settingName: "Hide top and bottom bars when scrolling",
-          isTicked: $hideTopBarAndNavBarWhenScrolling
-        )
-      }
-      Section("Customization") {
-        Picker("Vote complex style", selection: $voteComplexStyle) {
-          ForEach(VoteComplexStyle.allCases) { style in
-            Text(style.rawValue.capitalized)
+        Section("Posts") {
+          NavigationLink {
+            CustomizePostView()
+          } label: {
+            HStack(alignment: .center) {
+              Image(systemName: "rectangle.and.text.magnifyingglass")
+                .foregroundColor(.pink)
+              Text("Customize Post Display")
+            }
           }
+
+          SelectableSettingsItem(
+            settingIconSystemName: "rectangle.compress.vertical",
+            settingName: "Post size",
+            currentValue: $postSize,
+            options: PostSize.allCases
+          )
+
+          SwitchableSettingsItem(
+            settingPictureSystemName: "eye.trianglebadge.exclamationmark",
+            settingPictureColor: .pink,
+            settingName: "Blur NSFW",
+            isTicked: $shouldBlurNsfw)
+        }
+
+        Section("Comments") {
+          NavigationLink {
+            CustomizeCommentView()
+          } label: {
+            HStack(alignment: .center) {
+              Image(systemName: "rectangle.and.text.magnifyingglass")
+                .foregroundColor(.pink)
+              Text("Customize Comment Display")
+            }
+          }
+
+          SwitchableSettingsItem(
+            settingPictureSystemName: "server.rack",
+            settingPictureColor: .pink,
+            settingName: "Show user server instance",
+            isTicked: $shouldShowUserServerInComment)
+        }
+
+        Section("Communities") {
+          SwitchableSettingsItem(
+            settingPictureSystemName: "person.2.circle.fill",
+            settingPictureColor: .pink,
+            settingName: "Show community avatars",
+            isTicked: $shouldShowCommunityIcons
+          )
+
+          SwitchableSettingsItem(
+            settingPictureSystemName: "rectangle.grid.1x2",
+            settingPictureColor: .pink,
+            settingName: "Show community banners",
+            isTicked: $shouldShowCommunityHeaders
+          )
+        }
+
+        Section("Users") {
+          SwitchableSettingsItem(
+            settingPictureSystemName: "person.circle.fill",
+            settingPictureColor: .pink,
+            settingName: "Show user avatars",
+            isTicked: $shouldShowUserAvatars
+          )
+
+          SwitchableSettingsItem(
+            settingPictureSystemName: "rectangle.grid.1x2",
+            settingPictureColor: .pink,
+            settingName: "Show user banners",
+            isTicked: $shouldShowUserHeaders
+          )
+        }
+
+        Section("Privacy") {
+          SwitchableSettingsItem(
+            settingPictureSystemName: "person.fill",
+            settingPictureColor: .pink,
+            settingName: "Show Username In Navigation Bar",
+            isTicked: $showUsernameInNavigationBar)
+
+        }
+
+        Section("Navigation") {
+          SwitchableSettingsItem(
+            settingPictureSystemName: "scroll.fill",
+            settingPictureColor: .pink,
+            settingName: "Hide top and bottom bars when scrolling",
+            isTicked: $hideTopBarAndNavBarWhenScrolling
+          )
         }
       }
     }

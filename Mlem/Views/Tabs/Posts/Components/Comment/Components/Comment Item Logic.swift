@@ -14,12 +14,12 @@ extension CommentItem {
             try await _ = rateComment(
                 commentId: hierarchicalComment.commentView.id,
                 operation: operation,
-                account: account,
+                account: appState.currentActiveAccount,
                 commentTracker: commentTracker,
                 appState: appState
             )
         } catch {
-            print("failed to vote!")
+            appState.contextualError = .init(underlyingError: error)
         }
     }
     
@@ -29,12 +29,12 @@ extension CommentItem {
             // to avoid having to explicitly refer to our own module
             try await _ = Mlem.deleteComment(
                 comment: hierarchicalComment.commentView,
-                account: account,
+                account: appState.currentActiveAccount,
                 commentTracker: commentTracker,
                 appState: appState
             )
         } catch {
-            print("failed to delete comment!")
+            appState.contextualError = .init(underlyingError: error)
         }
     }
     
@@ -115,12 +115,12 @@ extension CommentItem {
             dirty = true
 
             do {
-                try await sendSaveCommentRequest(account: account,
+                try await sendSaveCommentRequest(account: appState.currentActiveAccount,
                                                  commentId: hierarchicalComment.id,
                                                  save: dirtySaved,
                                                  commentTracker: commentTracker)
             } catch {
-                print("failed to save comment!")
+                appState.contextualError = .init(underlyingError: error)
             }
 
             // unfake save
@@ -192,7 +192,7 @@ extension CommentItem {
         }
         
         // delete
-        if hierarchicalComment.commentView.creator.id == account.id {
+        if hierarchicalComment.commentView.creator.id == appState.currentActiveAccount.id {
             ret.append(MenuFunction(
                 text: "Delete",
                 imageName: "trash",

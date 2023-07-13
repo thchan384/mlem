@@ -8,8 +8,13 @@
 import SwiftUI
 
 struct SettingsView: View {
+    
+    @EnvironmentObject var appState: AppState
+    
     @Environment(\.openURL) private var openURL
 
+    @State private var accountToSwitchTo: SavedAccount?
+    
     @State private var specialContributors: [Contributor] = [
         Contributor(
             name: "Seb Jachec",
@@ -90,6 +95,18 @@ struct SettingsView: View {
                         }
                     }
                 }
+                
+                Section {
+                    NavigationLink {
+                        AccountsPage(selectedAccount: $accountToSwitchTo)
+                    } label: {
+                        HStack(alignment: .center) {
+                            Image(systemName: "person.fill.questionmark")
+                                .foregroundColor(.mint)
+                            Text("Switch Account")
+                        }
+                    }
+                }
 
                 Section {
                     NavigationLink {
@@ -136,9 +153,13 @@ struct SettingsView: View {
                             }
                         }
                     } label: {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundColor(.blue)
-                        Text("About Mlem")
+                        Label {
+                            Text("About Mlem")
+                                .foregroundColor(.primary)
+                        } icon: {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.blue)
+                        }
                     }
 
                     /* Disabled
@@ -160,15 +181,36 @@ struct SettingsView: View {
                      */
                     
                     Link(destination: URL(string: "https://github.com/mlemgroup/mlem")!) {
-                        Image(systemName: "curlybraces.square")
-                            .foregroundColor(.green)
-                        Text("Mlem GitHub Repository")
+                        Label {
+                            Text("Mlem GitHub Repository")
+                                .foregroundColor(.primary)
+                        } icon: {
+                            Image(systemName: "curlybraces.square.fill")
+                                .foregroundColor(.green)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    
+                    NavigationLink {
+                        DocumentsView()
+                    } label: {
+                        Label {
+                            Text("Documents")
+                                .foregroundColor(.primary)
+                        } icon: {
+                            Image(systemName: "books.vertical.fill")
+                                .foregroundColor(.purple)
+                        }
                     }
                     .buttonStyle(.plain)
                 }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: accountToSwitchTo) { account in
+                guard let account else { return }
+                appState.setActiveAccount(account)
+            }
         }
     }
 }
